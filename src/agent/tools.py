@@ -187,3 +187,22 @@ def check_alert_history(alert_type: str) -> str:
     })
 
     return json.dumps(result)
+
+# ─────────────────────────────────────────
+# TOOL 4 — MITRE ATT&CK Knowledge Base
+# Searches your local vector database for
+# matching attack techniques and threat groups
+# ─────────────────────────────────────────
+
+from src.agent.knowledge_base import search_mitre
+
+@tool
+def search_mitre_attack(query: str) -> str:
+    """
+    Search the MITRE ATT&CK knowledge base for attack techniques.
+    Use this for EVERY alert to find matching techniques, threat groups,
+    and what the attacker is likely to do next.
+    Input should describe the attack behavior you observed.
+    Example: 'PowerShell encoded command execution from svchost'
+    """
+    return search_mitre(query, k=2)

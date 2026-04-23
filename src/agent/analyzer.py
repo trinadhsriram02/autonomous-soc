@@ -3,13 +3,13 @@ from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
 
-from src.agent.tools import check_ip_reputation, search_cve_database, check_alert_history
+from src.agent.tools import check_ip_reputation, search_cve_database, check_alert_history, search_mitre_attack
 
 load_dotenv()
 
 model = ChatGroq(model="llama-3.1-8b-instant")
 
-tools = [check_ip_reputation, search_cve_database, check_alert_history]
+tools = [check_ip_reputation, search_cve_database, check_alert_history, search_mitre_attack]
 
 executor = create_react_agent(model, tools)
 
