@@ -20,45 +20,45 @@ st.markdown("""
 .big-title {
     font-size: 2.5rem;
     font-weight: 600;
-    color: #1f1f1f;
+    color: #00D4FF;
 }
 .subtitle {
     font-size: 1.1rem;
-    color: #666;
+    color: #CCCCCC;
     margin-bottom: 2rem;
 }
 .verdict-real {
-    background: #ffeded;
-    border-left: 4px solid #e53e3e;
+    background: #4a0000;
+    border-left: 4px solid #ff4444;
     padding: 1rem;
     border-radius: 0 8px 8px 0;
     margin: 1rem 0;
+    color: #ffffff;
 }
 .verdict-false {
-    background: #f0fff4;
-    border-left: 4px solid #38a169;
+    background: #004a1a;
+    border-left: 4px solid #44ff88;
     padding: 1rem;
     border-radius: 0 8px 8px 0;
     margin: 1rem 0;
+    color: #ffffff;
 }
 .verdict-investigate {
-    background: #fffbf0;
-    border-left: 4px solid #d69e2e;
+    background: #4a3a00;
+    border-left: 4px solid #ffd700;
     padding: 1rem;
     border-radius: 0 8px 8px 0;
     margin: 1rem 0;
+    color: #ffffff;
 }
 .action-card {
-    background: #f7f7f7;
+    background: #1e2a3a;
     border-radius: 8px;
     padding: 0.75rem 1rem;
     margin: 0.5rem 0;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #3a4a5a;
     font-size: 0.9rem;
-}
-.metric-card {
-    text-align: center;
-    padding: 1rem;
+    color: #ffffff;
 }
 </style>
 """, unsafe_allow_html=True)
