@@ -224,6 +224,10 @@ This starts both the API server and dashboard automatically in containers.
 - Safety gate checks every action before execution
 - API key authentication on all sensitive endpoints
 - API keys stored in .env — never committed to GitHub
+- JWT Authentication — secure token-based sessions, 8 hour expiry
+- Role-Based Access Control — Admin, Analyst, Read-Only permissions
+- Audit trails — every action linked to analyst user ID
+- Bcrypt password hashing — passwords never stored in plain text
 
 ---
 
