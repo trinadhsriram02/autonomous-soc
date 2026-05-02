@@ -59,7 +59,7 @@ graph TD
     M --> N
 ```
 
-
+---
 
 ## 🛠️ Tech Stack
 
@@ -78,143 +78,6 @@ graph TD
 
 ---
 
-## 📊 Evaluation Results
-
-| Metric | Score |
-|--------|-------|
-| Precision | 0.94 |
-| Recall | 0.91 |
-| F1 Score | 0.92 |
-
-Tested on 20 labeled alerts — 10 real threats, 10 false positives.
-
----
-
-## ✅ Prerequisites
-
-Before starting make sure these are installed on your machine:
-
-| Tool | Version | Download |
-|------|---------|----------|
-| Python | 3.10 or higher | https://www.python.org/downloads |
-| pip | comes with Python | — |
-| Git | any version | https://git-scm.com/downloads |
-
----
-
-## 🚀 Setup
-
-### 1. Clone the repo
-```bash
-git clone https://github.com/trinadhsriram02/autonomous-soc.git
-cd autonomous-soc
-```
-### 2. Create virtual environment
-```bash
-python -m venv venv
-```
-
-### 3. Activate virtual environment
-```bash
-# Windows
-venv\Scripts\activate.bat
-
-# Mac/Linux
-source venv/bin/activate
-```
-
-### 3. Install dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Set up environment variables
-```bash
-cp .env.example .env
-```
-Fill in your keys in `.env`:
-GROQ_API_KEY=your_groq_key
-ABUSEIPDB_API_KEY=your_abuseipdb_key
-SLACK_WEBHOOK_URL=your_slack_webhook
-### 5. Build the MITRE ATT&CK knowledge base
-```bash
-python -m src.agent.knowledge_base
-```
-
-### 6. Start the API server
-```bash
-python -m src.api.main
-```
-
-### 7. Start the dashboard
-```bash
-streamlit run dashboard.py
-```
-
-### 8. Or run everything with Docker
-```bash
-docker-compose up
-```
-
----
-
-## 📡 API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | / | Health check |
-| GET | /health | Detailed system status |
-| POST | /analyze | Analyze alert (sync) |
-| POST | /analyze/queue | Analyze alert (async) |
-| POST | /analyze/batch | Analyze up to 10 alerts |
-| GET | /queue/status | Queue size and stats |
-| GET | /queue/result/{id} | Get queued alert result |
-| GET | /alerts/sample | Sample test alerts |
-| GET | /investigations/history | All past investigations |
-| GET | /investigations/ip/{ip} | History for specific IP |
-| POST | /feedback | Submit analyst feedback |
-| GET | /docs | Interactive API documentation |
-
----
-
-## 🔒 Security Features
-
-- Parameterized SQL queries — zero injection risk
-- Hardcoded protected assets — gateway, DNS, backup servers never blocked
-- Confidence gating — destructive actions require 85%+ confidence
-- Safety gate checks every action before execution
-- API keys stored in .env — never committed to GitHub
-
----
-
-## 📁 Project Structure
-
-autonomous-soc/
-├── src/
-│   ├── agent/
-│   │   ├── analyzer.py         AI agent main file
-│   │   ├── tools.py            4 investigation tools
-│   │   ├── knowledge_base.py   MITRE ATT&CK RAG
-│   │   └── remediation.py      Auto-remediation engine
-│   ├── api/
-│   │   └── main.py             FastAPI backend
-│   ├── queue/
-│   │   └── alert_queue.py      Async queue processor
-│   ├── data/
-│   │   ├── sample_alerts.py    Test data
-│   │   ├── mitre_knowledge.py  ATT&CK techniques
-│   │   ├── memory_store.py     Persistent SQLite memory
-│   │   └── mitre_updater.py    Auto-update pipeline
-│   └── evaluation/
-│       └── evaluate.py         Precision/Recall/F1 metrics
-├── dashboard.py                Streamlit UI
-├── Dockerfile                  Container definition
-├── docker-compose.yml          Multi-service orchestration
-├── requirements.txt            Python dependencies
-├── .env.example                Environment variable template
-└── README.md
-
----
 ## 📊 Evaluation and Metrics
 
 ### Test methodology
@@ -247,6 +110,146 @@ Ran the agent against a labeled dataset of 20 security alerts —
 | check_alert_history | 1.0 | Every alert |
 | search_mitre_attack | 1.0 | Every alert |
 
+### Scaling the evaluation pipeline
+
+Current testing covers 20 labeled alerts due to API latency
+constraints. To scale to 1000+ alerts the pipeline would use:
+
+- **Offline LLM evaluation** — replace live Groq API calls with a local model like Ollama for zero-cost batch testing
+- **pytest fixtures** — automated test runner with labeled ground truth dataset stored in JSON
+- **GitHub Actions CI** — run evaluation suite on every pull request automatically
+- **Metrics tracking** — log precision, recall, F1 to MLflow after every model or prompt change
+
+---
+
+## ✅ Prerequisites
+
+Before starting make sure these are installed on your machine:
+
+| Tool | Version | Download |
+|------|---------|----------|
+| Python | 3.10 or higher | https://www.python.org/downloads |
+| pip | comes with Python | — |
+| Git | any version | https://git-scm.com/downloads |
+
+---
+
+## 🚀 Setup
+
+### 1. Clone the repo
+```bash
+git clone https://github.com/trinadhsriram02/autonomous-soc.git
+cd autonomous-soc
+```
+
+### 2. Create virtual environment
+```bash
+python -m venv venv
+```
+
+### 3. Activate virtual environment
+```bash
+# Windows
+venv\Scripts\activate.bat
+
+# Mac/Linux
+source venv/bin/activate
+```
+
+### 4. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 5. Set up environment variables
+```bash
+cp .env.example .env
+```
+
+Fill in your keys in `.env`:
+GROQ_API_KEY=your_groq_key
+ABUSEIPDB_API_KEY=your_abuseipdb_key
+SLACK_WEBHOOK_URL=your_slack_webhook
+SOC_API_KEY=your_soc_api_key
+
+### 6. Build the MITRE ATT&CK knowledge base
+```bash
+python -m src.agent.knowledge_base
+```
+
+### 7. Start the API server
+```bash
+python -m src.api.main
+```
+
+### 8. Start the dashboard
+```bash
+streamlit run dashboard.py
+```
+
+### 9. Or run everything with Docker
+```bash
+docker-compose up
+```
+
+---
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | / | Health check |
+| GET | /health | Detailed system status |
+| POST | /analyze | Analyze alert sync |
+| POST | /analyze/queue | Analyze alert async |
+| POST | /analyze/batch | Analyze up to 10 alerts |
+| GET | /queue/status | Queue size and stats |
+| GET | /queue/result/{id} | Get queued alert result |
+| GET | /alerts/sample | Sample test alerts |
+| GET | /investigations/history | All past investigations |
+| GET | /investigations/ip/{ip} | History for specific IP |
+| POST | /feedback | Submit analyst feedback |
+| GET | /docs | Interactive API documentation |
+
+---
+
+## 🔒 Security Features
+
+- Parameterized SQL queries — zero injection risk
+- Hardcoded protected assets — gateway, DNS, backup servers never blocked
+- Confidence gating — destructive actions require 85%+ confidence
+- Safety gate checks every action before execution
+- API key authentication on all sensitive endpoints
+- API keys stored in .env — never committed to GitHub
+
+---
+
+## 📁 Project Structure
+autonomous-soc/
+├── src/
+│   ├── agent/
+│   │   ├── analyzer.py         AI agent main file
+│   │   ├── tools.py            4 investigation tools
+│   │   ├── knowledge_base.py   MITRE ATT&CK RAG
+│   │   └── remediation.py      Auto-remediation engine
+│   ├── api/
+│   │   ├── main.py             FastAPI backend
+│   │   └── auth.py             API key authentication
+│   ├── queue/
+│   │   └── alert_queue.py      Async queue processor
+│   ├── data/
+│   │   ├── sample_alerts.py    Test data
+│   │   ├── mitre_knowledge.py  ATT&CK techniques
+│   │   ├── memory_store.py     Persistent SQLite memory
+│   │   └── mitre_updater.py    Auto-update pipeline
+│   └── evaluation/
+│       └── evaluate.py         Precision/Recall/F1 metrics
+├── dashboard.py                Streamlit UI
+├── Dockerfile                  Container definition
+├── docker-compose.yml          Multi-service orchestration
+├── requirements.txt            Python dependencies
+├── .env.example                Environment variable template
+└── README.md
 ---
 
 ## 👨‍💻 Author
