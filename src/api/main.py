@@ -174,9 +174,9 @@ def get_investigation_history():
 
 @app.get("/investigations/ip/{ip_address}")
 def get_ip_investigation_history(ip_address: str):
-    """Get full history for a specific IP address."""
-    from src.data.memory_store import get_ip_history
-    return get_ip_history(ip_address)
+    """Get full history for a specific IP — SQL injection safe."""
+    from src.data.memory_store import safe_get_ip_history
+    return safe_get_ip_history(ip_address)
 
 
 

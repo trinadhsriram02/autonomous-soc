@@ -135,58 +135,86 @@ def search_cve_database(search_term: str) -> str:
 # Simulates checking if we have seen
 # similar alerts before in our system
 # ─────────────────────────────────────────
-
 @tool
 def check_alert_history(alert_type: str) -> str:
     """
-    Check if we have seen similar alerts recently in our system.
-    Use this to determine if this is a repeated pattern or first occurrence.
-    Input should be the type of attack like 'brute_force', 'data_exfiltration'
+    Check real database for similar past alerts.
+    Queries SQLite database — returns actual historical patterns.
+    Use this for every alert to find recurring attack patterns.
+    Input should be the alert type like brute_force or malware.
     """
-    # Simulated alert history database
-    history = {
-        "brute_force": {
+    import sqlite3
+    import json
+
+    DB_PATH = "src/data/investigations.db"
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        # Create table if it doesnt exist yet
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS investigations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip_address TEXT,
+                alert_type TEXT,
+                verdict TEXT,
+                confidence INTEGER,
+                priority TEXT,
+                message TEXT,
+                timestamp TEXT,
+                actions_taken TEXT
+            )
+        """)
+        conn.commit()
+
+        # Query real historical data using parameterized query
+        cursor.execute("""
+            SELECT verdict, confidence, timestamp, ip_address
+            FROM investigations
+            WHERE alert_type = ?
+            ORDER BY timestamp DESC
+            LIMIT 5
+        """, (alert_type,))
+
+        rows = cursor.fetchall()
+
+        # Count total occurrences
+        cursor.execute(
+            "SELECT COUNT(*) FROM investigations WHERE alert_type = ?",
+            (alert_type,)
+        )
+        total = cursor.fetchone()[0]
+        conn.close()
+
+        if not rows:
+            return json.dumps({
+                "seen_before": False,
+                "count": 0,
+                "pattern": "First occurrence in database",
+                "note": "No prior history — treat as high priority"
+            })
+
+        verdicts = [r[0] for r in rows]
+        real_threats = verdicts.count("REAL THREAT")
+
+        return json.dumps({
             "seen_before": True,
-            "count_last_7_days": 12,
-            "last_seen": "2024-01-14 22:15:00",
-            "pattern": "Increasing frequency — 3x more than last week",
-            "previous_verdict": "REAL THREAT",
-            "note": "Active campaign detected — multiple source IPs targeting root"
-        },
-        "data_exfiltration": {
-            "seen_before": True,
-            "count_last_7_days": 2,
-            "last_seen": "2024-01-13 08:30:00",
-            "pattern": "Rare — only 2 occurrences",
-            "previous_verdict": "REAL THREAT",
-            "note": "Previous incident involved same Tor exit node range"
-        },
-        "malware": {
+            "total_occurrences": total,
+            "recent_count": len(rows),
+            "real_threat_rate": f"{(real_threats/len(rows)*100):.0f}%",
+            "last_seen": rows[0][2],
+            "last_verdict": rows[0][0],
+            "pattern": "Recurring attack" if total > 3 else "Occasional",
+            "note": f"Seen {total} times. Last verdict was {rows[0][0]}"
+        })
+
+    except Exception as e:
+        return json.dumps({
+            "error": str(e),
             "seen_before": False,
-            "count_last_7_days": 0,
-            "last_seen": None,
-            "pattern": "First occurrence",
-            "previous_verdict": None,
-            "note": "No prior history — treat as high priority"
-        },
-        "normal_traffic": {
-            "seen_before": True,
-            "count_last_7_days": 1520,
-            "last_seen": "2024-01-15 10:00:00",
-            "pattern": "Normal baseline activity",
-            "previous_verdict": "FALSE POSITIVE",
-            "note": "This is expected daily activity"
-        }
-    }
-
-    result = history.get(alert_type, {
-        "seen_before": False,
-        "count_last_7_days": 0,
-        "pattern": "No history found",
-        "note": "Unknown alert type"
-    })
-
-    return json.dumps(result)
+            "note": "Database error — treating as first occurrence"
+        })
 
 # ─────────────────────────────────────────
 # TOOL 4 — MITRE ATT&CK Knowledge Base
