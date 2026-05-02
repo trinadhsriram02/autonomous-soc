@@ -1,16 +1,23 @@
 import streamlit as st
 import requests
-import json
 from datetime import datetime
 
 # ─────────────────────────────────────────
-# Page config — must be first Streamlit command
+# Page config — MUST be first line
 # ─────────────────────────────────────────
 st.set_page_config(
     page_title="AutonomousSOC",
     page_icon="🛡️",
     layout="wide"
 )
+
+# ─────────────────────────────────────────
+# Auth check — stop if not logged in
+# ─────────────────────────────────────────
+from src.ui.auth_forms import show_auth_page, logout, get_auth_headers
+
+if not show_auth_page():
+    st.stop()
 
 # ─────────────────────────────────────────
 # Styling
@@ -71,7 +78,6 @@ API_URL = "http://localhost:8000"
 # ─────────────────────────────────────────
 
 def check_api_health():
-    """Check if the FastAPI backend is running."""
     try:
         response = requests.get(f"{API_URL}/health", timeout=3)
         return response.status_code == 200
@@ -80,7 +86,6 @@ def check_api_health():
 
 
 def analyze_alert(alert_type, message, severity):
-    """Send alert to FastAPI and get AI analysis back."""
     payload = {
         "type": alert_type,
         "message": message,
@@ -90,6 +95,7 @@ def analyze_alert(alert_type, message, severity):
     response = requests.post(
         f"{API_URL}/analyze",
         json=payload,
+        headers=get_auth_headers(),
         timeout=60
     )
     return response.json()
@@ -119,8 +125,10 @@ def get_priority_color(priority):
 col1, col2 = st.columns([3, 1])
 
 with col1:
-    st.markdown('<div class="big-title">🛡️ AutonomousSOC</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtitle">AI-powered Security Operations Center — real-time threat analysis and auto-remediation</div>', unsafe_allow_html=True)
+    st.markdown('<div class="big-title">🛡️ AutonomousSOC</div>',
+                unsafe_allow_html=True)
+    st.markdown('<div class="subtitle">AI-powered Security Operations Center — real-time threat analysis and auto-remediation</div>',
+                unsafe_allow_html=True)
 
 with col2:
     api_status = check_api_health()
@@ -128,19 +136,38 @@ with col2:
         st.success("API Online ✓")
     else:
         st.error("API Offline ✗")
-        st.info("Start API: python -m src.api.main")
+        st.info("Run: python -m src.api.main")
+
+    st.markdown(
+        f"👤 **{st.session_state.get('username', '')}** "
+        f"— {st.session_state.get('role', '').upper()}"
+    )
+    if st.button("Logout"):
+        logout()
 
 st.divider()
 
 # ─────────────────────────────────────────
-# Main layout — two columns
+# Role banner
+# ─────────────────────────────────────────
+role = st.session_state.get("role", "readonly")
+if role == "admin":
+    st.info("👑 Admin — full access to all features")
+elif role == "analyst":
+    st.info("🔍 Analyst — can analyze alerts and submit feedback")
+else:
+    st.warning("👁️ Read-Only — viewing dashboard only")
+
+can_analyze = role in ["admin", "analyst"]
+
+# ─────────────────────────────────────────
+# Main layout
 # ─────────────────────────────────────────
 left_col, right_col = st.columns([1, 1])
 
 with left_col:
     st.subheader("Submit Security Alert")
 
-    # Alert type selector
     alert_type = st.selectbox(
         "Alert Type",
         options=[
@@ -154,21 +181,18 @@ with left_col:
         ]
     )
 
-    # Severity selector
     severity = st.select_slider(
         "Severity",
         options=["low", "medium", "high", "critical"],
         value="medium"
     )
 
-    # Alert message input
     message = st.text_area(
         "Alert Message",
         height=150,
-        placeholder="Paste your security alert here...\n\nExample: Failed SSH login attempts: 847 failures in 60 seconds from IP 192.168.1.45 targeting user root"
+        placeholder="Paste your security alert here..."
     )
 
-    # Sample alert buttons
     st.markdown("**Quick test alerts:**")
     sample_col1, sample_col2 = st.columns(2)
 
@@ -198,20 +222,21 @@ with left_col:
             st.session_state.sample_severity = "low"
             st.rerun()
 
-    # Load sample if button was clicked
     if "sample_message" in st.session_state:
         message = st.session_state.sample_message
-        st.info(f"Sample loaded — click Analyze to run")
+        st.info("Sample loaded — click Analyze to run")
 
     st.divider()
 
-    # Analyze button
     analyze_clicked = st.button(
         "Analyze Alert",
         type="primary",
         use_container_width=True,
-        disabled=not api_status
+        disabled=not api_status or not can_analyze
     )
+
+    if not can_analyze:
+        st.caption("Read-only users cannot run analysis")
 
 
 # ─────────────────────────────────────────
@@ -226,19 +251,16 @@ with right_col:
         else:
             with st.spinner("AI agent is investigating..."):
                 try:
-                    # Use session state values if sample was loaded
                     actual_type = st.session_state.get("sample_type", alert_type)
                     actual_severity = st.session_state.get("sample_severity", severity)
                     actual_message = st.session_state.get("sample_message", message)
 
                     result = analyze_alert(actual_type, actual_message, actual_severity)
 
-                    # Clear session state after use
                     for key in ["sample_message", "sample_type", "sample_severity"]:
                         if key in st.session_state:
                             del st.session_state[key]
 
-                    # ── Verdict banner ────────────────────
                     verdict = result.get("verdict", "UNKNOWN")
                     confidence = result.get("confidence", 0)
                     priority = result.get("priority", "MEDIUM")
@@ -256,11 +278,9 @@ with right_col:
                     </div>
                     """, unsafe_allow_html=True)
 
-                    # ── Confidence meter ──────────────────
                     st.markdown("**Confidence Score**")
                     st.progress(confidence / 100)
 
-                    # ── Key metrics ───────────────────────
                     m1, m2, m3 = st.columns(3)
                     with m1:
                         st.metric("Verdict", verdict.split()[0])
@@ -271,11 +291,9 @@ with right_col:
 
                     st.divider()
 
-                    # ── Full analysis ─────────────────────
                     with st.expander("Full AI Analysis", expanded=True):
                         st.text(result.get("analysis", "No analysis available"))
 
-                    # ── Actions taken ─────────────────────
                     actions = result.get("actions_taken", [])
                     if actions:
                         st.markdown(f"**Actions Taken ({len(actions)})**")
@@ -312,51 +330,49 @@ with right_col:
                                 </div>
                                 """, unsafe_allow_html=True)
 
+                    # Save to history
+                    if "history" not in st.session_state:
+                        st.session_state.history = []
+                    st.session_state.history.append({
+                        "time": datetime.now().strftime("%H:%M:%S"),
+                        "type": actual_type,
+                        "verdict": verdict,
+                        "confidence": confidence,
+                        "priority": priority
+                    })
+
                 except requests.exceptions.ConnectionError:
-                    st.error("Cannot connect to API. Make sure the FastAPI server is running.")
+                    st.error("Cannot connect to API.")
                     st.code("python -m src.api.main")
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
-
     else:
-        # Placeholder when nothing analyzed yet
         st.info("Submit an alert on the left to see AI analysis here")
-
-        st.markdown("**How it works:**")
         st.markdown("""
+        **How it works:**
         1. Select alert type and severity
-        2. Paste the alert message
+        2. Paste the alert message or use a quick test button
         3. Click Analyze Alert
-        4. AI agent investigates using:
-           - IP reputation database
-           - CVE vulnerability search
-           - MITRE ATT&CK knowledge base
-           - Historical alert patterns
-        5. See verdict, confidence score, and automatic actions taken
+        4. AI investigates using 4 tools + MITRE ATT&CK
+        5. See verdict, confidence score, and actions taken
         """)
 
 st.divider()
 
 # ─────────────────────────────────────────
-# Alert history section
+# Alert history
 # ─────────────────────────────────────────
 st.subheader("Alert History")
 
 if "history" not in st.session_state:
     st.session_state.history = []
 
-if analyze_clicked and "result" in dir():
-    st.session_state.history.append({
-        "time": datetime.now().strftime("%H:%M:%S"),
-        "type": alert_type,
-        "verdict": result.get("verdict", ""),
-        "confidence": result.get("confidence", 0),
-        "priority": result.get("priority", "")
-    })
-
 if st.session_state.history:
     for item in reversed(st.session_state.history[-10:]):
         icon = "🔴" if "REAL" in item["verdict"] else "🟢" if "FALSE" in item["verdict"] else "🟡"
-        st.markdown(f"{icon} `{item['time']}` — **{item['type']}** → {item['verdict']} ({item['confidence']}% confidence) — {item['priority']}")
+        st.markdown(
+            f"{icon} `{item['time']}` — **{item['type']}** → "
+            f"{item['verdict']} ({item['confidence']}% confidence) — {item['priority']}"
+        )
 else:
     st.caption("No alerts analyzed yet in this session")

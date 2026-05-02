@@ -1,3 +1,14 @@
+from src.api.jwt_auth import (
+    hash_password, verify_password,
+    create_access_token, get_current_user,
+    require_permission
+)
+from src.data.memory_store import (
+    create_user, get_user_by_username, get_all_users,
+    init_users_table
+)
+
+from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -83,7 +94,7 @@ def health_check():
 @app.post("/analyze")
 async def analyze(
     request: AlertRequest,
-    api_key: str = Depends(verify_api_key)
+    current_user: dict = Depends(require_permission("analyze"))
 ):
     """
     Async endpoint — handles 5 simultaneous requests.
@@ -228,6 +239,133 @@ def submit_feedback(feedback: dict):
     with open("src/data/feedback_dataset.jsonl", "a") as f:
         f.write(json.dumps(feedback) + "\n")
     return {"status": "saved", "message": "Feedback stored for fine-tuning"}
+
+# ─────────────────────────────────────────
+# Auth Models
+# ─────────────────────────────────────────
+class SignupRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+    role: str = "readonly"
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+# ─────────────────────────────────────────
+# Auth Endpoints
+# ─────────────────────────────────────────
+
+@app.post("/signup")
+def signup(request: SignupRequest):
+    """
+    Create a new user account.
+    Passwords are hashed with bcrypt before storing.
+    Default role is readonly — admin must upgrade.
+    """
+    # Validate role
+    valid_roles = ["admin", "analyst", "readonly"]
+    if request.role not in valid_roles:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid role. Choose from: {valid_roles}"
+        )
+
+    # Hash password before saving
+    hashed = hash_password(request.password)
+
+    result = create_user(
+        username=request.username,
+        email=request.email,
+        hashed_password=hashed,
+        role=request.role
+    )
+
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    return {
+        "message": "Account created successfully",
+        "username": result["username"],
+        "role": result["role"]
+    }
+
+
+@app.post("/login")
+def login(request: LoginRequest):
+    """
+    Login and get JWT token.
+    Token expires in 8 hours.
+    Include token in all future requests as Bearer token.
+    """
+    user = get_user_by_username(request.username)
+
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Username not found"
+        )
+
+    if not user["is_active"]:
+        raise HTTPException(
+            status_code=401,
+            detail="Account is deactivated"
+        )
+
+    if not verify_password(request.password, user["hashed_password"]):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect password"
+        )
+
+    # Create JWT token
+    token = create_access_token(data={
+        "sub": user["username"],
+        "role": user["role"],
+        "id": user["id"]
+    })
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "username": user["username"],
+        "role": user["role"],
+        "message": f"Welcome back {user['username']}"
+    }
+
+
+@app.get("/me")
+async def get_my_profile(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get current logged in user profile."""
+    return {
+        "username": current_user["username"],
+        "role": current_user["role"],
+        "permissions": {
+            "can_analyze": current_user["role"] in ["admin", "analyst"],
+            "can_give_feedback": current_user["role"] in ["admin", "analyst"],
+            "can_manage_users": current_user["role"] == "admin",
+            "can_view": True
+        }
+    }
+
+
+@app.get("/admin/users")
+async def list_all_users(
+    current_user: dict = Depends(require_permission("manage_users"))
+):
+    """
+    Get all users — admin only.
+    Analysts and readonly users cannot access this.
+    """
+    return {
+        "total": len(get_all_users()),
+        "users": get_all_users()
+    }
 
 
 if __name__ == "__main__":
