@@ -186,12 +186,15 @@ python -m src.api.main
 ```bash
 streamlit run dashboard.py
 ```
+### 9. Or run everything with Docker (optional)
 
-### 9. Or run everything with Docker
+Requires Docker Desktop — https://www.docker.com/products/docker-desktop
+
 ```bash
 docker-compose up
 ```
 
+This starts both the API server and dashboard automatically in containers.
 ---
 
 ## 📡 API Endpoints
