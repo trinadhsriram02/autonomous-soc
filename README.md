@@ -37,32 +37,29 @@ AutonomousSOC uses an LLM agent with 4 investigation tools, a RAG knowledge base
 
 ## 🏗️ Architecture
 
-Security Alert (via API or Dashboard)
-↓
-FastAPI Backend — async, 5 concurrent workers
-↓
-Async Queue — returns job ID instantly
-↓
-LangGraph AI Agent
-↓
-┌──────────────────────────────────────────┐
-│ Tool 1: IP Reputation    (AbuseIPDB)     │
-│ Tool 2: CVE Search       (NIST NVD)      │
-│ Tool 3: Alert History    (SQLite)        │
-│ Tool 4: MITRE ATT&CK     (ChromaDB RAG) │
-└──────────────────────────────────────────┘
-↓
-Remediation Engine (confidence gating)
-↓
-┌─────────────────────────────────────┐
-│ Above 85% → Auto-block IP + Ticket  │
-│ 50-85%   → Escalate via Slack       │
-│ Below 50% → Dismiss false positive  │
-└─────────────────────────────────────┘
-↓
-Streamlit Dashboard + Persistent Memory
+```mermaid
+graph TD
+    A[Security Alert] --> B[FastAPI Backend]
+    B --> C{Async Queue}
+    C --> D[LangGraph AI Agent]
+    D --> E[Tool 1: IP Reputation AbuseIPDB]
+    D --> F[Tool 2: CVE Search NIST NVD]
+    D --> G[Tool 3: Alert History SQLite]
+    D --> H[Tool 4: MITRE ATT&CK ChromaDB RAG]
+    E --> I[Remediation Engine]
+    F --> I
+    G --> I
+    H --> I
+    I --> J{Confidence Gate}
+    J -->|Above 85%| K[Auto-Block IP and Create Ticket]
+    J -->|50 to 85%| L[Escalate via Slack]
+    J -->|Below 50%| M[Dismiss as False Positive]
+    K --> N[Streamlit Dashboard]
+    L --> N
+    M --> N
+```
 
----
+
 
 ## 🛠️ Tech Stack
 
