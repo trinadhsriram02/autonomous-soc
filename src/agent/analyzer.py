@@ -44,6 +44,12 @@ def analyze_alert(alert: dict) -> dict:
         "REASONING: 2-3 sentences\n"
         "RECOMMENDED ACTION: what to do right now\n"
         "PRIORITY: CRITICAL / HIGH / MEDIUM / LOW"
+        "\n\nERROR HANDLING RULES:\n"
+        "- If check_ip_reputation fails, skip it and continue with other tools\n"
+        "- If search_cve_database times out, note it as unavailable and proceed\n"
+        "- Never stop the investigation — always produce a verdict\n"
+        "- If fewer than 2 tools return data, set confidence to maximum 60%\n"
+        "- Always state which tools succeeded and which failed in TOOLS USED\n"
     )
 
     result = executor.invoke({

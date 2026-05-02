@@ -3,11 +3,6 @@ import json
 import os
 from langchain_core.tools import tool
 
-# ─────────────────────────────────────────
-# TOOL 1 — IP Reputation Checker
-# Uses AbuseIPDB free API to check if an
-# IP address is known to be malicious
-# ─────────────────────────────────────────
 
 @tool
 def check_ip_reputation(ip_address: str) -> str:
@@ -19,7 +14,6 @@ def check_ip_reputation(ip_address: str) -> str:
     api_key = os.getenv("ABUSEIPDB_API_KEY")
 
     if not api_key:
-        # Fallback: simulate result for testing without API key
         known_bad_ips = [
             "185.220.101.42",
             "192.168.1.45",
@@ -45,7 +39,6 @@ def check_ip_reputation(ip_address: str) -> str:
             "assessment": "IP appears clean — no significant threat history"
         })
 
-    # Real API call to AbuseIPDB
     url = "https://api.abuseipdb.com/api/v2/check"
     headers = {"Key": api_key, "Accept": "application/json"}
     params = {"ipAddress": ip_address, "maxAgeInDays": 90}
@@ -65,14 +58,12 @@ def check_ip_reputation(ip_address: str) -> str:
             "assessment": f"Reported {data['totalReports']} times in last 90 days"
         })
     except Exception as e:
-        return json.dumps({"error": f"IP lookup failed: {str(e)}"})
+        return json.dumps({
+            "error": f"IP lookup failed: {str(e)}",
+            "threat_level": "UNKNOWN",
+            "assessment": "IP check unavailable — proceed with other tools"
+        })
 
-
-# ─────────────────────────────────────────
-# TOOL 2 — CVE Vulnerability Search
-# Searches NIST National Vulnerability
-# Database (completely free, no key needed)
-# ─────────────────────────────────────────
 
 @tool
 def search_cve_database(search_term: str) -> str:
@@ -84,7 +75,7 @@ def search_cve_database(search_term: str) -> str:
     url = "https://services.nvd.nist.gov/rest/json/cves/2.0"
     params = {
         "keywordSearch": search_term,
-        "resultsPerPage": 3  # get top 3 most relevant
+        "resultsPerPage": 3
     }
 
     try:
@@ -101,7 +92,6 @@ def search_cve_database(search_term: str) -> str:
         cves = []
         for item in data["vulnerabilities"][:3]:
             cve = item["cve"]
-            # get severity score safely
             metrics = cve.get("metrics", {})
             score = "N/A"
             severity = "UNKNOWN"
@@ -127,14 +117,13 @@ def search_cve_database(search_term: str) -> str:
         })
 
     except Exception as e:
-        return json.dumps({"error": f"CVE search failed: {str(e)}"})
+        return json.dumps({
+            "error": f"CVE search failed: {str(e)}",
+            "risk_level": "UNKNOWN",
+            "result": "CVE database unavailable — proceed with other tools"
+        })
 
 
-# ─────────────────────────────────────────
-# TOOL 3 — Alert History Checker
-# Simulates checking if we have seen
-# similar alerts before in our system
-# ─────────────────────────────────────────
 @tool
 def check_alert_history(alert_type: str) -> str:
     """
@@ -144,7 +133,6 @@ def check_alert_history(alert_type: str) -> str:
     Input should be the alert type like brute_force or malware.
     """
     import sqlite3
-    import json
 
     DB_PATH = "src/data/investigations.db"
 
@@ -152,7 +140,6 @@ def check_alert_history(alert_type: str) -> str:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
-        # Create table if it doesnt exist yet
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS investigations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -168,7 +155,6 @@ def check_alert_history(alert_type: str) -> str:
         """)
         conn.commit()
 
-        # Query real historical data using parameterized query
         cursor.execute("""
             SELECT verdict, confidence, timestamp, ip_address
             FROM investigations
@@ -179,7 +165,6 @@ def check_alert_history(alert_type: str) -> str:
 
         rows = cursor.fetchall()
 
-        # Count total occurrences
         cursor.execute(
             "SELECT COUNT(*) FROM investigations WHERE alert_type = ?",
             (alert_type,)
@@ -216,11 +201,6 @@ def check_alert_history(alert_type: str) -> str:
             "note": "Database error — treating as first occurrence"
         })
 
-# ─────────────────────────────────────────
-# TOOL 4 — MITRE ATT&CK Knowledge Base
-# Searches your local vector database for
-# matching attack techniques and threat groups
-# ─────────────────────────────────────────
 
 from src.agent.knowledge_base import search_mitre
 
@@ -233,4 +213,10 @@ def search_mitre_attack(query: str) -> str:
     Input should describe the attack behavior you observed.
     Example: 'PowerShell encoded command execution from svchost'
     """
-    return search_mitre(query, k=2)
+    try:
+        return search_mitre(query, k=2)
+    except Exception as e:
+        return json.dumps({
+            "error": f"MITRE search failed: {str(e)}",
+            "result": "Knowledge base unavailable — proceed with other tools"
+        })
