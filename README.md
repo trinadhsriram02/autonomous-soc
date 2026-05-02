@@ -90,6 +90,18 @@ Tested on 20 labeled alerts — 10 real threats, 10 false positives.
 
 ---
 
+## ✅ Prerequisites
+
+Before starting make sure these are installed on your machine:
+
+| Tool | Version | Download |
+|------|---------|----------|
+| Python | 3.10 or higher | https://www.python.org/downloads |
+| pip | comes with Python | — |
+| Git | any version | https://git-scm.com/downloads |
+
+---
+
 ## 🚀 Setup
 
 ### 1. Clone the repo
@@ -97,12 +109,18 @@ Tested on 20 labeled alerts — 10 real threats, 10 false positives.
 git clone https://github.com/trinadhsriram02/autonomous-soc.git
 cd autonomous-soc
 ```
-
 ### 2. Create virtual environment
 ```bash
 python -m venv venv
-venv\Scripts\activate.bat     # Windows
-source venv/bin/activate       # Mac/Linux
+```
+
+### 3. Activate virtual environment
+```bash
+# Windows
+venv\Scripts\activate.bat
+
+# Mac/Linux
+source venv/bin/activate
 ```
 
 ### 3. Install dependencies
