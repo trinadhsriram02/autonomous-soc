@@ -32,6 +32,9 @@ AutonomousSOC uses an LLM agent with 4 investigation tools, a RAG knowledge base
 - Human feedback system for future model fine-tuning
 - Hardcoded safety gates — never acts on protected assets
 - Auto-updates MITRE ATT&CK knowledge base from official source
+- JWT Authentication with Role-Based Access Control
+- Strong password validation — blocks weak and name-based passwords
+- Full audit trails — every action linked to analyst user ID
 
 ---
 
@@ -71,8 +74,9 @@ graph TD
 | Knowledge Base | MITRE ATT&CK Framework |
 | Backend | FastAPI, Python 3.11 |
 | Frontend | Streamlit |
+| Auth | JWT Tokens, SHA256 Password Hashing |
 | Queue | AsyncIO in-memory queue |
-| Database | SQLite (persistent memory) |
+| Database | SQLite persistent memory |
 | Security APIs | AbuseIPDB, NIST NVD |
 | DevOps | Docker, Docker Compose |
 
@@ -119,6 +123,24 @@ constraints. To scale to 1000+ alerts the pipeline would use:
 - **pytest fixtures** — automated test runner with labeled ground truth dataset stored in JSON
 - **GitHub Actions CI** — run evaluation suite on every pull request automatically
 - **Metrics tracking** — log precision, recall, F1 to MLflow after every model or prompt change
+
+---
+
+## 👥 User Roles and Access Control
+
+| Role | Analyze Alerts | Submit Feedback | Manage Users | View Dashboard |
+|------|---------------|-----------------|--------------|----------------|
+| Admin | ✅ | ✅ | ✅ | ✅ |
+| Analyst | ✅ | ✅ | ❌ | ✅ |
+| Read-Only | ❌ | ❌ | ❌ | ✅ |
+
+### Password Requirements
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
+- At least one special character !@#$%^&*
+- Cannot contain your first name, last name, or username
 
 ---
 
@@ -171,6 +193,7 @@ GROQ_API_KEY=your_groq_key
 ABUSEIPDB_API_KEY=your_abuseipdb_key
 SLACK_WEBHOOK_URL=your_slack_webhook
 SOC_API_KEY=your_soc_api_key
+JWT_SECRET_KEY=your_jwt_secret_key
 
 ### 6. Build the MITRE ATT&CK knowledge base
 ```bash
@@ -186,7 +209,21 @@ python -m src.api.main
 ```bash
 streamlit run dashboard.py
 ```
-### 9. Or run everything with Docker (optional)
+
+### 9. Create your first admin account
+Go to `http://localhost:8000/docs` and call `POST /signup`:
+```json
+{
+  "username": "your_username",
+  "first_name": "Your",
+  "last_name": "Name",
+  "email": "your@email.com",
+  "password": "Strong@Pass2024!",
+  "role": "admin"
+}
+```
+
+### 10. Or run everything with Docker (optional)
 
 Requires Docker Desktop — https://www.docker.com/products/docker-desktop
 
@@ -195,24 +232,29 @@ docker-compose up
 ```
 
 This starts both the API server and dashboard automatically in containers.
+
 ---
 
 ## 📡 API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | / | Health check |
-| GET | /health | Detailed system status |
-| POST | /analyze | Analyze alert sync |
-| POST | /analyze/queue | Analyze alert async |
-| POST | /analyze/batch | Analyze up to 10 alerts |
-| GET | /queue/status | Queue size and stats |
-| GET | /queue/result/{id} | Get queued alert result |
-| GET | /alerts/sample | Sample test alerts |
-| GET | /investigations/history | All past investigations |
-| GET | /investigations/ip/{ip} | History for specific IP |
-| POST | /feedback | Submit analyst feedback |
-| GET | /docs | Interactive API documentation |
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | / | Health check | No |
+| GET | /health | Detailed system status | No |
+| POST | /signup | Create user account | No |
+| POST | /login | Login and get JWT token | No |
+| GET | /me | Get current user profile | Yes |
+| POST | /analyze | Analyze alert sync | Analyst+ |
+| POST | /analyze/queue | Analyze alert async | Analyst+ |
+| POST | /analyze/batch | Analyze up to 10 alerts | Analyst+ |
+| GET | /queue/status | Queue size and stats | No |
+| GET | /queue/result/{id} | Get queued alert result | No |
+| GET | /alerts/sample | Sample test alerts | No |
+| GET | /investigations/history | All past investigations | No |
+| GET | /investigations/ip/{ip} | History for specific IP | No |
+| POST | /feedback | Submit analyst feedback | Analyst+ |
+| GET | /admin/users | List all users | Admin only |
+| GET | /docs | Interactive API documentation | No |
 
 ---
 
@@ -222,12 +264,12 @@ This starts both the API server and dashboard automatically in containers.
 - Hardcoded protected assets — gateway, DNS, backup servers never blocked
 - Confidence gating — destructive actions require 85%+ confidence
 - Safety gate checks every action before execution
-- API key authentication on all sensitive endpoints
-- API keys stored in .env — never committed to GitHub
 - JWT Authentication — secure token-based sessions, 8 hour expiry
 - Role-Based Access Control — Admin, Analyst, Read-Only permissions
-- Audit trails — every action linked to analyst user ID
-- Bcrypt password hashing — passwords never stored in plain text
+- Strong password validation — blocks weak and name-based passwords
+- Audit trails — every analyst action linked to user ID
+- SHA256 password hashing with salt — passwords never stored plain text
+- API keys stored in .env — never committed to GitHub
 
 ---
 
@@ -241,9 +283,12 @@ autonomous-soc/
 │   │   └── remediation.py      Auto-remediation engine
 │   ├── api/
 │   │   ├── main.py             FastAPI backend
-│   │   └── auth.py             API key authentication
+│   │   ├── auth.py             API key authentication
+│   │   └── jwt_auth.py         JWT and RBAC system
 │   ├── queue/
 │   │   └── alert_queue.py      Async queue processor
+│   ├── ui/
+│   │   └── auth_forms.py       Login and signup UI
 │   ├── data/
 │   │   ├── sample_alerts.py    Test data
 │   │   ├── mitre_knowledge.py  ATT&CK techniques

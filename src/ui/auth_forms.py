@@ -43,27 +43,51 @@ def show_login_form():
             except requests.exceptions.ConnectionError:
                 st.error("Cannot connect to API. Make sure server is running.")
 
-
 def show_signup_form():
     """Render the signup form."""
     st.markdown("## 📝 Create Account")
 
     with st.form("signup_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            first_name = st.text_input("First Name")
+        with col2:
+            last_name = st.text_input("Last Name")
+
         username = st.text_input("Username")
         email = st.text_input("Email")
-        password = st.text_input("Password", type="password")
+        password = st.text_input(
+            "Password",
+            type="password",
+            help="Must be 8+ characters with uppercase, lowercase, number, and special character. Cannot contain your name."
+        )
         confirm_password = st.text_input("Confirm Password", type="password")
         role = st.selectbox(
             "Role",
             options=["readonly", "analyst", "admin"],
             help="readonly=view only, analyst=analyze alerts, admin=full access"
         )
+
+        # Show password requirements
+        st.markdown("""
+        **Password requirements:**
+        - Minimum 8 characters
+        - At least one uppercase letter
+        - At least one lowercase letter
+        - At least one number
+        - At least one special character !@#$%^&*
+        - Cannot contain your first or last name
+        """)
+
         submitted = st.form_submit_button(
-            "Create Account", use_container_width=True, type="primary"
+            "Create Account",
+            use_container_width=True,
+            type="primary"
         )
 
         if submitted:
-            if not all([username, email, password, confirm_password]):
+            if not all([first_name, last_name, username, email,
+                       password, confirm_password]):
                 st.error("Please fill in all fields")
                 return
 
@@ -71,15 +95,13 @@ def show_signup_form():
                 st.error("Passwords do not match")
                 return
 
-            if len(password) < 6:
-                st.error("Password must be at least 6 characters")
-                return
-
             try:
                 response = requests.post(
                     f"{API_URL}/signup",
                     json={
                         "username": username,
+                        "first_name": first_name,
+                        "last_name": last_name,
                         "email": email,
                         "password": password,
                         "role": role
@@ -88,7 +110,7 @@ def show_signup_form():
                 )
 
                 if response.status_code == 200:
-                    st.success("Account created! Please login.")
+                    st.success("Account created successfully! Please login.")
                     st.session_state.show_signup = False
                     st.rerun()
                 else:

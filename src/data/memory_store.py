@@ -177,7 +177,8 @@ def get_all_investigations(limit: int = 50) -> list:
 
 
 def create_user(username: str, email: str,
-                hashed_password: str, role: str) -> dict:
+                hashed_password: str, role: str,
+                first_name: str = "", last_name: str = "") -> dict:
     """Save a new user to the database."""
     init_users_table()
     conn = sqlite3.connect(DB_PATH)
@@ -194,7 +195,13 @@ def create_user(username: str, email: str,
         conn.commit()
         user_id = cursor.lastrowid
         conn.close()
-        return {"id": user_id, "username": username, "role": role}
+        return {
+            "id": user_id,
+            "username": username,
+            "role": role,
+            "first_name": first_name,
+            "last_name": last_name
+        }
     except sqlite3.IntegrityError:
         conn.close()
         return {"error": "Username or email already exists"}
