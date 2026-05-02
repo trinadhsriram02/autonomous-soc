@@ -2,7 +2,7 @@
 
 An autonomous AI agent that investigates security alerts, correlates threat intelligence, and takes automatic remediation actions — replacing Tier-1 SOC analyst work.
 
-> **Live Demo:** https://huggingface.co/spaces/trinadhsriram02/AutonomousSOC
+> **Live Demo:** https://huggingface.co/spaces/trinadh2/AutonomousSOC
 > 
 > **Live API:** https://autonomous-soc-api.onrender.com/docs
 > 
