@@ -70,7 +70,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-API_URL = "http://localhost:8000"
+import os
+API_URL = os.environ.get("SOC_API_URL", "http://localhost:8000")
 
 
 # ─────────────────────────────────────────
