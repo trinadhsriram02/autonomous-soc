@@ -8,6 +8,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 from src.agent.analyzer import analyze_alert
+from src.api.auth import verify_api_key
+from fastapi import Depends
 from src.queue.alert_queue import publish_alert
 
 app = FastAPI(
@@ -79,7 +81,10 @@ def health_check():
 
 
 @app.post("/analyze")
-async def analyze(request: AlertRequest):
+async def analyze(
+    request: AlertRequest,
+    api_key: str = Depends(verify_api_key)
+):
     """
     Async endpoint — handles 5 simultaneous requests.
     Runs agent in thread pool so it never blocks.
@@ -128,7 +133,10 @@ def get_sample_alerts():
 
 
 @app.post("/analyze/batch")
-def analyze_batch(alerts: list[AlertRequest]):
+def analyze_batch(
+    alerts: list[AlertRequest],
+    api_key: str = Depends(verify_api_key)
+):
     if len(alerts) > 10:
         raise HTTPException(
             status_code=400,
@@ -173,7 +181,10 @@ def get_ip_investigation_history(ip_address: str):
 
 
 @app.post("/analyze/queue")
-async def analyze_queued(request: AlertRequest):
+async def analyze_queued(
+    request: AlertRequest,
+    api_key: str = Depends(verify_api_key)
+):
     """
     Queued endpoint — returns job ID immediately.
     Alert is processed in background.
