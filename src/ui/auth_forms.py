@@ -1,7 +1,9 @@
 import streamlit as st
 import requests
+import os  # Added the missing os import
 
-API_URL = "os.environ.get("SOC_API_URL", "http://localhost:8000")
+# Removed the stray quote mark at the beginning
+API_URL = os.environ.get("SOC_API_URL", "http://localhost:8000")
 
 
 def show_login_form():
