@@ -4,7 +4,7 @@ An autonomous AI agent that investigates security alerts, correlates threat inte
 
 > **Live Demo:** https://huggingface.co/spaces/trinadhsriram02/AutonomousSOC
 > 
-> **Live API:** https://autonomous-soc-api.onrender.com/docs
+> **Live API:** https://trinadhsriram02-autonomoussoc-api.hf.space
 > 
 > **Demo Video:** [Watch here](paste-your-loom-link-here)
 ---
