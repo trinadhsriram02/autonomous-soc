@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-API_URL = "http://localhost:8000"
+API_URL = "os.environ.get("SOC_API_URL", "http://localhost:8000")
 
 
 def show_login_form():
