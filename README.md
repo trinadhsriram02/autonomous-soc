@@ -3,10 +3,11 @@
 An autonomous AI agent that investigates security alerts, correlates threat intelligence, and takes automatic remediation actions — replacing Tier-1 SOC analyst work.
 
 > **Live Demo:** https://huggingface.co/spaces/trinadhsriram02/AutonomousSOC
-> 
-> **Live API:** https://trinadhsriram02-autonomoussoc-api.hf.space
-> 
+>
+> **Live API:** https://trinadhsriram02-autonomoussoc-api.hf.space/docs
+>
 > **Demo Video:** [Watch here](paste-your-loom-link-here)
+
 ---
 
 ## 🚨 The Problem
@@ -79,7 +80,7 @@ graph TD
 | Queue | AsyncIO in-memory queue |
 | Database | SQLite persistent memory |
 | Security APIs | AbuseIPDB, NIST NVD |
-| DevOps | Docker, Docker Compose |
+| DevOps | Docker, Docker Compose, HuggingFace Spaces |
 
 ---
 
@@ -232,7 +233,18 @@ Requires Docker Desktop — https://www.docker.com/products/docker-desktop
 docker-compose up
 ```
 
-This starts both the API server and dashboard automatically in containers.
+---
+
+## ☁️ Cloud Deployment
+
+This project is deployed on HuggingFace Spaces:
+
+| Service | Platform | URL |
+|---------|----------|-----|
+| FastAPI Backend | HuggingFace Docker Space | https://trinadhsriram02-autonomoussoc-api.hf.space |
+| Streamlit Dashboard | HuggingFace Streamlit Space | https://huggingface.co/spaces/trinadhsriram02/AutonomousSOC |
+
+**Deployment note:** Initially deployed on Render.com but migrated to HuggingFace Spaces after diagnosing memory limit issues — ChromaDB and Sentence Transformers require more than Render's free 512MB limit. HuggingFace Docker spaces provide 16GB RAM at no cost.
 
 ---
 
